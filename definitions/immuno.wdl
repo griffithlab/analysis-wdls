@@ -14,6 +14,7 @@ import "tools/intersect_known_variants.wdl" as ikv
 import "tools/pvacfuse.wdl" as pf
 import "types.wdl"  # !UnusedImport
 import "tools/optitype_dna.wdl" as od 
+import "tools/phlat.wdl" as ph
 
 #
 # These structs are needed only because MiniWDL, used by some of our
@@ -344,6 +345,14 @@ workflow immuno {
     cram=somaticExome.tumor_cram,
     cram_crai=somaticExome.tumor_cram_crai,
     optitype_name=optitype_name
+  }
+
+  call ph.phlat {
+    input:
+    cram=somaticExome.tumor_cram,
+    cram_crai=somaticExome.tumor_cram_crai,
+    reference=reference,
+    reference_fai=reference_fai
   } 
 
   call pv.phaseVcf {
@@ -361,7 +370,9 @@ workflow immuno {
   }
 
   call eha.extractHlaAlleles as extractAlleles {
-    input: file=germlineExome.optitype_tsv
+    input:
+    file=germlineExome.optitype_tsv, 
+    phlat_file=germlineExome.phlat_summary
   }
 
   call hc.hlaConsensus {
@@ -603,6 +614,8 @@ workflow immuno {
       hlaConsensus.hla_call_files
     ])
 
+    Array[File] phlat_hla_typing_normal = [germlineExome.phlat_summary]
+
     # --------- Other Outputs ------------------------------------------
 
     Array[File] pvactools = flatten([
@@ -617,5 +630,6 @@ workflow immuno {
     Array[File] hla_typing_tumor = [optitype.optitype_tsv]
     Array[File] pvacfuse_predictions = pvacfuse.pvacfuse_predictions
     Array[File] fusioninspector_evidence = rna.fusioninspector_evidence
+    Array[File] phlat_hla_typing_tumor = [phlat.phlat_summary]
   }
 }

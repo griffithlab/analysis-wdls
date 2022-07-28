@@ -3,6 +3,7 @@ version 1.0
 task extractHlaAlleles {
   input {
     File file
+    File phlat_file
   }
 
   Int space_needed_gb = 10 + round(size(file, "GB"))
@@ -14,7 +15,8 @@ task extractHlaAlleles {
 
   String outname = "helper.txt"
   command <<<
-    /usr/bin/awk '{getline; printf "HLA-"$2 "\nHLA-"$3 "\nHLA-"$4 "\nHLA-"$5 "\nHLA-"$6 "\nHLA-"$7}' ~{file} > ~{outname}
+    /usr/bin/awk '{FS="\t";getline;for(n=2;n<=NF-2;n++){if($n==""){}else{printf "HLA-"$n"\n"}}}' ~{file} > ~{outname}
+    cat ~(phlat_file) | tail -3 | /usr/bin/awk '{FS="\t";if($2==""){}else{printf "HLA-"$2"\n"};if($3==""){}else{printf "HLA-"$3"\n"}}' >> ~{outname}
   >>>
 
   output {
@@ -24,6 +26,13 @@ task extractHlaAlleles {
 }
 
 workflow wf {
-  input { File file }
-  call extractHlaAlleles { input: file=file }
+  input {
+    File file 
+    File phlat_file 
+  }
+  call extractHlaAlleles { 
+    input: 
+    file=file,
+    phlat_file=phlat_file 
+  }
 }
